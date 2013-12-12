@@ -76,20 +76,18 @@ Install with your favorite package manager
 Pip:
 
 ```shell
-git clone https://github.com/mumrah/kafka-python
-pip install ./kafka-python
+pip install kafka
 ```
 
 Setuptools:
 ```shell
-git clone https://github.com/mumrah/kafka-python
-easy_install ./kafka-python
+easy_install kafka
 ```
 
 Using `setup.py` directly:
 ```shell
-git clone https://github.com/mumrah/kafka-python
-cd kafka-python
+git clone https://github.com/kafka/kafka
+cd kafka
 python setup.py install
 ```
 
