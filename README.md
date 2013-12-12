@@ -48,7 +48,7 @@ for message in consumer:
     consumer.commit()
 
 # Do not need commit
-for message in consumer.get_messages(count=5, block=True, timeout=4):
+for message in consumer.get_messages(count=5):
     print(message)
 
 ```
