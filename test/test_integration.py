@@ -20,7 +20,6 @@ class TestKafkaClient(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        cls.client.close()
         cls.server.close()
         cls.zk.close()
 
@@ -558,7 +557,6 @@ class TestConsumer(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        cls.client.close()
         cls.server1.close()
         cls.server2.close()
         cls.zk.close()
@@ -787,7 +785,6 @@ class TestFailover(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.client.close()
         for broker in cls.brokers:
             broker.close()
         cls.zk.close()
@@ -874,7 +871,6 @@ class TestFailover(unittest.TestCase):
         for message in consumer:
             all_messages.append(message)
         consumer.stop()
-        client.close()
         return len(all_messages)
 
 

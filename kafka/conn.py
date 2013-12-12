@@ -1,16 +1,17 @@
-import copy
 import logging
 import socket
 import struct
-from threading import local
 
+from poolbase import pool, connection
 from kafka.common import BufferUnderflowError
 from kafka.common import ConnectionError
 
 log = logging.getLogger("kafka")
 
+DEFAULT_TIMEOUT = 10
+DEFAULT_BUFFER_SIZE = 4096
 
-class KafkaConnection(local):
+class KafkaConnection(connection.Connection):
     """
     A socket connection to a single Kafka broker
 
@@ -19,15 +20,17 @@ class KafkaConnection(local):
     we can do something in here to facilitate multiplexed requests/responses
     since the Kafka API includes a correlation id.
     """
-    def __init__(self, host, port, bufsize=4096):
-        super(KafkaConnection, self).__init__()
+    def __init__(self, host, port, **kwargs):
+        connection.Connection.__init__(self)
         self.host = host
         self.port = port
-        self.bufsize = bufsize
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((host, port))
-        self._sock.settimeout(10)
-        self._dirty = False
+        self.buffer_size = kwargs.get('buffer_size', DEFAULT_BUFFER_SIZE)
+        self.auto_connect = kwargs.get('auto_connect', True)
+        self._sock = None
+        self.isOpen = False
+        if self.auto_connect:
+            self.open()
+            self.isOpen = True
 
     def __str__(self):
         return "<KafkaConnection host=%s port=%d>" % (self.host, self.port)
@@ -58,13 +61,13 @@ class KafkaConnection(local):
             self._raise_connection_error()
         (size,) = struct.unpack('>i', resp)
 
-        messagesize = size - 4
-        log.debug("About to read %d bytes from Kafka", messagesize)
+        message_size = size - 4
+        log.debug("About to read %d bytes from Kafka", message_size)
 
         # Read the remainder of the response
         total = 0
-        while total < messagesize:
-            resp = self._sock.recv(self.bufsize)
+        while total < message_size:
+            resp = self._sock.recv(self.buffer_size)
             log.debug("Read %d bytes from Kafka", len(resp))
             if resp == "":
                 raise BufferUnderflowError(
@@ -74,21 +77,28 @@ class KafkaConnection(local):
             yield resp
 
     def _raise_connection_error(self):
-        self._dirty = True
-        raise ConnectionError("Kafka @ {}:{} went away".format(self.host, self.port))
+        self.isOpen = False
+        error_message = "Kafka @ {}:{} went away".format(self.host, self.port)
+        raise ConnectionError(error_message)
 
     ##################
     #   Public API   #
     ##################
+    def open(self):
+        if self.isOpen:
+            return
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.connect((self.host, self.port))
+        self._sock.settimeout(DEFAULT_TIMEOUT)
+        self.isOpen = True
 
-    # TODO multiplex socket communication to allow for multi-threaded clients
-
-    def send(self, request_id, payload):
-        "Send a request to Kafka"
-        log.debug("About to send %d bytes to Kafka, request %d" % (len(payload), request_id))
+    def push(self, request_id, payload):
+        "Push a request to Kafka, Does not require response"
+        log.debug("About to send %d bytes to Kafka, request %d" % (
+            len(payload), request_id))
         try:
-            if self._dirty:
-                self.reinit()
+            if not self.isOpen:
+                self.refresh()
             sent = self._sock.sendall(payload)
             if sent is not None:
                 self._raise_connection_error()
@@ -96,22 +106,13 @@ class KafkaConnection(local):
             log.exception('Unable to send payload to Kafka')
             self._raise_connection_error()
 
-    def recv(self, request_id):
+    def request(self, request_id, payload):
         """
-        Get a response from Kafka
+        Send request and get a response from Kafka
         """
         log.debug("Reading response %d from Kafka" % request_id)
-        self.data = self._consume_response()
-        return self.data
-
-    def copy(self):
-        """
-        Create an inactive copy of the connection object
-        A reinit() has to be done on the copy before it can be used again
-        """
-        c = copy.deepcopy(self)
-        c._sock = None
-        return c
+        self.push(request_id, payload)
+        return self._consume_response()
 
     def close(self):
         """
@@ -120,12 +121,27 @@ class KafkaConnection(local):
         if self._sock:
             self._sock.close()
 
-    def reinit(self):
+    def refresh(self):
         """
         Re-initialize the socket connection
         """
         self.close()
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((self.host, self.port))
-        self._sock.settimeout(10)
-        self._dirty = False
+        self.open()
+
+
+class KafkaConnectionPool(pool.ConnectionPool):
+    def __init__(self, size, **kwargs):
+        pool.ConnectionPool.__init__(
+            self,
+            size,
+            connection_klass=KafkaConnection,
+            **kwargs
+        )
+
+    def push(self, request_id, payload):
+        with self.connection() as conn:
+            conn.push(request_id, payload)
+
+    def request(self, request_id, payload):
+        with self.connection() as conn:
+            return conn.request(request_id, payload)

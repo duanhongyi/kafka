@@ -69,7 +69,14 @@ producer = SimpleProducer(kafka, "my-topic", batch_send=True,
 
 # To consume messages
 consumer = SimpleConsumer(kafka, "my-group", "my-topic")
+
+# iter get need commit
 for message in consumer:
+    print(message)
+    consumer.commit()
+
+# Do not need offset
+for message in consumer.get_messages(count=5, block=True, timeout=4):
     print(message)
 
 kafka.close()
@@ -89,27 +96,6 @@ producer.send("key1", "some message")
 producer.send("key2", "this methode")
 
 producer = KeyedProducer(kafka, "my-topic", partitioner=RoundRobinPartitioner)
-```
-
-## Multiprocess consumer
-```python
-from kafka.client import KafkaClient
-from kafka.consumer import MultiProcessConsumer
-
-kafka = KafkaClient("localhost", 9092)
-
-# This will split the number of partitions among two processes
-consumer = MultiProcessConsumer(kafka, "my-group", "my-topic", num_procs=2)
-
-# This will spawn processes such that each handles 2 partitions max
-consumer = MultiProcessConsumer(kafka, "my-group", "my-topic",
-                                partitions_per_proc=2)
-
-for message in consumer:
-    print(message)
-
-for message in consumer.get_messages(count=5, block=True, timeout=4):
-    print(message)
 ```
 
 ## Low level
