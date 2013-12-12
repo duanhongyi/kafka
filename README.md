@@ -9,7 +9,7 @@ Compatible with Apache Kafka 0.8.1
 
 http://kafka.apache.org/
 
-# Authors
+# About
 
 This client is based on python-kafka, python-kafka was created by David Arthur.
 However, because its implementation is more complex, in practical applications
@@ -20,8 +20,6 @@ delete some of the features.
 # License
 
 This pack is Copyright 2013, Apache License, v2.0. See `LICENSE`
-
-# Status
 
 
 ## High level
