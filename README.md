@@ -75,7 +75,7 @@ for message in consumer:
     print(message)
     consumer.commit()
 
-# Do not need offset
+# Do not need commit
 for message in consumer.get_messages(count=5, block=True, timeout=4):
     print(message)
 
