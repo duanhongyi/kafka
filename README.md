@@ -86,7 +86,7 @@ easy_install kafka
 
 Using `setup.py` directly:
 ```shell
-git clone https://github.com/kafka/kafka
+git clone https://github.com/duanhongyi/kafka
 cd kafka
 python setup.py install
 ```
