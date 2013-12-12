@@ -6,7 +6,7 @@ import time
 
 from kafka.common import ErrorMapping, TopicAndPartition
 from kafka.common import ConnectionError, FailedPayloadsException
-from kafka.conn import KafkaConnectionPool
+from kafka.connection import KafkaConnectionPool
 from kafka.protocol import KafkaProtocol
 
 log = logging.getLogger("kafka")
