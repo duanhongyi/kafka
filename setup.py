@@ -7,7 +7,7 @@ README = open(os.path.join(here, 'README.md')).read()
 
 setup(
     name="kafka",
-    version="0.8.1-2",
+    version="0.8.1-3",
     install_requires=["distribute", "poolbase"],
     packages=["kafka"],
     author="duanhongyi",
