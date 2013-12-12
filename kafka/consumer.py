@@ -169,20 +169,16 @@ class SimpleConsumer(Consumer):
         else:
             raise ValueError("Unexpected value for `whence`, %d" % whence)
 
-    def get_messages(self, count=1, block=True, timeout=0.1):
+    def get_messages(self, count=1):
         """
         Fetch the specified number of messages and commit offset
 
         count: Indicates the maximum number of messages to be fetched
         block: If True, the API will block till some messages are fetched.
-        timeout: If None, and block=True, the API will block infinitely.
-                 If >0, API will block for specified time (in seconds)
         """
         messages = []
         iterator = self.__iter__()
 
-        # HACK: This splits the timeout between available partitions
-        timeout = timeout * 1.0 / len(self.offsets)
         while count > 0:
             try:
                 messages.append(next(iterator))
