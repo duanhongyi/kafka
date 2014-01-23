@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -9,7 +9,7 @@ setup(
     name="kafka",
     version="0.8.1-3",
     install_requires=["distribute", "poolbase"],
-    packages=["kafka"],
+    packages=find_packages(),
     author="duanhongyi",
     author_email="duanhongyi@doopai.com",
     url="https://github.com/duanhongyi/kafka",
