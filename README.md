@@ -41,13 +41,14 @@ producer.send_messages("this method", "is variadic")
 consumer = SimpleConsumer(kafka, "my-group", "my-topic")
 
 # iter get need commit
-for message in consumer:
-    print(message)
+while True:
+    for partition, message in consumer:
+        print("partition:%s,message:%s" % (partition, message))
     consumer.commit()
 
 # Do not need commit
-for message in consumer.get_messages(count=5):
-    print(message)
+for partition, message in consumer.get_messages(count=5):
+    print("partition:%s,message:%s" % (partition, message))
 
 ```
 
