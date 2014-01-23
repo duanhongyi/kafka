@@ -1,8 +1,7 @@
 from collections import defaultdict
 import struct
-from threading import Thread, Event
 
-from kafka.common import BufferUnderflowError
+from kafka.exception import BufferUnderflowError
 
 
 def write_int_string(s):

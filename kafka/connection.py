@@ -3,15 +3,18 @@ import socket
 import struct
 
 from poolbase import pool, connection
-from kafka.common import BufferUnderflowError
-from kafka.common import ConnectionError
+from kafka.exception import (
+    BufferUnderflowError, ConnectionError, TimeoutException
+)
 
 log = logging.getLogger("kafka")
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 60
 DEFAULT_BUFFER_SIZE = 4096
 
+
 class KafkaConnection(connection.Connection):
+
     """
     A socket connection to a single Kafka broker
 
@@ -20,10 +23,12 @@ class KafkaConnection(connection.Connection):
     we can do something in here to facilitate multiplexed requests/responses
     since the Kafka API includes a correlation id.
     """
+
     def __init__(self, host, port, **kwargs):
         connection.Connection.__init__(self)
         self.host = host
         self.port = port
+        self.timeout = kwargs.get('timeout', DEFAULT_TIMEOUT)
         self.buffer_size = kwargs.get('buffer_size', DEFAULT_BUFFER_SIZE)
         self.auto_connect = kwargs.get('auto_connect', True)
         self._sock = None
@@ -43,10 +48,18 @@ class KafkaConnection(connection.Connection):
         """
         Fully consumer the response iterator
         """
-        data = ""
-        for chunk in self._consume_response_iter():
-            data += chunk
-        return data
+        r, w, e = [self._sock], [], []
+        try:
+            r, w, e = select.select(r, w, e, self.timeout)
+            data = ""
+            for chunk in self._consume_response_iter():
+                data += chunk
+            return data
+        except select.error as err:
+            self.close()
+            if err.args[0] != EINTR:
+                raise err
+        raise TimeoutException("Consume response timeout:%s" % self.timeout)
 
     def _consume_response_iter(self):
         """
@@ -84,6 +97,7 @@ class KafkaConnection(connection.Connection):
     ##################
     #   Public API   #
     ##################
+
     def open(self):
         if self.isOpen:
             return
@@ -130,6 +144,7 @@ class KafkaConnection(connection.Connection):
 
 
 class KafkaConnectionPool(pool.ConnectionPool):
+
     def __init__(self, size, **kwargs):
         pool.ConnectionPool.__init__(
             self,

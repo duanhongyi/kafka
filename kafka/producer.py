@@ -9,6 +9,7 @@ log = logging.getLogger("kafka")
 
 
 class Producer(object):
+
     """
     Base class to be used by producers
 
@@ -50,6 +51,7 @@ class Producer(object):
 
 
 class SimpleProducer(Producer):
+
     """
     A simple, round-robbin producer. Each message goes to exactly one partition
 
@@ -61,6 +63,7 @@ class SimpleProducer(Producer):
     ack_timeout - Value (in milliseconds) indicating a timeout for waiting
                   for an acknowledgement
     """
+
     def __init__(self, client, topic,
                  req_acks=Producer.ACK_AFTER_LOCAL_WRITE,
                  ack_timeout=Producer.DEFAULT_ACK_TIMEOUT):
@@ -76,6 +79,7 @@ class SimpleProducer(Producer):
 
 
 class KeyedProducer(Producer):
+
     """
     A producer which distributes messages to partitions based on the key
 
@@ -87,6 +91,7 @@ class KeyedProducer(Producer):
     ack_timeout - Value (in milliseconds) indicating a timeout for waiting
                   for an acknowledgement
     """
+
     def __init__(self, client, topic, partitioner=None,
                  req_acks=Producer.ACK_AFTER_LOCAL_WRITE,
                  ack_timeout=Producer.DEFAULT_ACK_TIMEOUT):

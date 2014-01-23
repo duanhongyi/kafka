@@ -9,8 +9,8 @@ from kafka.common import (
     BrokerMetadata, PartitionMetadata, Message, OffsetAndMessage,
     ProduceResponse, FetchResponse, OffsetResponse,
     OffsetCommitResponse, OffsetFetchResponse,
-    BufferUnderflowError, ChecksumError, ConsumerFetchSizeTooSmall
 )
+from kafka.exception import *
 from kafka.util import (
     read_short_string, read_int_string, relative_unpack,
     write_short_string, write_int_string, group_by_topic_and_partition
@@ -20,6 +20,7 @@ log = logging.getLogger("kafka")
 
 
 class KafkaProtocol(object):
+
     """
     Class to encapsulate all of the protocol encoding/decoding.
     This class does not have any state associated with it, it is purely
@@ -36,6 +37,21 @@ class KafkaProtocol(object):
     CODEC_NONE = 0x00
     CODEC_GZIP = 0x01
     CODEC_SNAPPY = 0x02
+    ERROR_CODE_MAPPING = {
+        -1: UnknownException,
+        1: OffsetOutOfRangeException,
+        2: InvalidMessageException,
+        3: UnknownTopicOrPartitionException,
+        4: InvalidMessageSizeException,
+        5: LeaderNotAvailableException,
+        6: NotLeaderForPartitionException,
+        7: RequestTimedOutException,
+        8: BrokerNotAvailableException,
+        9: ReplicaNotAvailableException,
+        10: MessageSizeTooLargeException,
+        11: StaleControllerEpochCodeException,
+        12: OffsetMetadataTooLargeCodeException,
+    }
 
     ###################
     #   Private API   #
@@ -439,7 +455,7 @@ class KafkaProtocol(object):
         data: bytes to decode
         """
         ((correlation_id,), cur) = relative_unpack('>i', data, 0)
-        
+
         ((num_topics,), cur) = relative_unpack('>i', data, cur)
 
         for i in xrange(num_topics):

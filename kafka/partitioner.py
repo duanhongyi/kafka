@@ -2,9 +2,11 @@ from itertools import cycle
 
 
 class Partitioner(object):
+
     """
     Base class for a partitioner
     """
+
     def __init__(self, partitions):
         """
         Initialize the partitioner
@@ -26,10 +28,12 @@ class Partitioner(object):
 
 
 class RoundRobinPartitioner(Partitioner):
+
     """
     Implements a round robin partitioner which sends data to partitions
     in a round robin fashion
     """
+
     def __init__(self, partitions):
         super(RoundRobinPartitioner, self).__init__(partitions)
         self.iterpart = cycle(partitions)
@@ -47,10 +51,12 @@ class RoundRobinPartitioner(Partitioner):
 
 
 class HashedPartitioner(Partitioner):
+
     """
     Implements a partitioner which selects the target partition based on
     the hash of the key
     """
+
     def partition(self, key, partitions):
         size = len(partitions)
         idx = hash(key) % size

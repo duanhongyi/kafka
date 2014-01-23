@@ -4,8 +4,10 @@ from itertools import count
 import logging
 import time
 
-from kafka.common import ErrorMapping, TopicAndPartition
-from kafka.common import ConnectionError, FailedPayloadsException
+from kafka.common import TopicAndPartition
+from kafka.exception import (
+    ConnectionError, FailedPayloadsException, UnknownException
+)
 from kafka.connection import KafkaConnectionPool
 from kafka.protocol import KafkaProtocol
 
@@ -119,7 +121,7 @@ class KafkaClient(object):
         for conn in self.conns.values():
             try:
                 return conn.request(request_id, request)
-            except BaseException, e:
+            except BaseException as e:
                 log.warning("Could not send request [%r] to server %s, "
                             "trying next server: %s" % (request, conn, e))
                 continue
@@ -238,12 +240,15 @@ class KafkaClient(object):
         out = []
         for resp in resps:
             # Check for errors
-            if fail_on_error is True and resp.error != ErrorMapping.NO_ERROR:
-                raise Exception(
+            if fail_on_error is True and resp.error != 0:
+                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                    resp.error, UnknownException
+                )
+                raise exception_cls(
                     "ProduceRequest for %s failed with errorcode=%d" %
                     (TopicAndPartition(resp.topic, resp.partition),
-                        resp.error))
-
+                     resp.error)
+                )
             out.append(resp)
         return out
 
@@ -267,8 +272,11 @@ class KafkaClient(object):
         out = []
         for resp in resps:
             # Check for errors
-            if fail_on_error is True and resp.error != ErrorMapping.NO_ERROR:
-                raise Exception(
+            if fail_on_error is True and resp.error != 0:
+                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                    resp.error, UnknownException
+                )
+                raise exception_cls(
                     "FetchRequest for %s failed with errorcode=%d" %
                     (TopicAndPartition(resp.topic, resp.partition),
                         resp.error))
@@ -284,9 +292,12 @@ class KafkaClient(object):
 
         out = []
         for resp in resps:
-            if fail_on_error is True and resp.error != ErrorMapping.NO_ERROR:
-                raise Exception("OffsetRequest failed with errorcode=%s",
-                                resp.error)
+            if fail_on_error is True and resp.error != 0:
+                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                    resp.error, UnknownException
+                )
+                raise exception_cls("OffsetRequest failed with errorcode=%s",
+                                    resp.error)
             out.append(resp)
         return out
 
@@ -299,9 +310,12 @@ class KafkaClient(object):
 
         out = []
         for resp in resps:
-            if fail_on_error is True and resp.error != ErrorMapping.NO_ERROR:
-                raise Exception("OffsetCommitRequest failed with "
-                                "errorcode=%s", resp.error)
+            if fail_on_error is True and resp.error != 0:
+                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                    resp.error, UnknownException
+                )
+                raise exception_cls("OffsetCommitRequest failed with "
+                                    "errorcode=%s", resp.error)
             out.append(resp)
         return out
 
@@ -315,8 +329,12 @@ class KafkaClient(object):
 
         out = []
         for resp in resps:
-            if fail_on_error is True and resp.error != ErrorMapping.NO_ERROR:
-                raise Exception("OffsetCommitRequest failed with errorcode=%s",
-                                resp.error)
+            if fail_on_error is True and resp.error != 0:
+                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                    resp.error, UnknownException
+                )
+                raise exception_cls(
+                    "OffsetCommitRequest failed with errorcode=%s",
+                    resp.error)
             out.append(resp)
         return out

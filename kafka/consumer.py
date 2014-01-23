@@ -17,6 +17,7 @@ FETCH_MIN_BYTES = 4096
 
 
 class Consumer(object):
+
     """
     Base class to be used by other consumers. Not to be used directly
 
@@ -24,6 +25,7 @@ class Consumer(object):
     * initialization and fetching metadata of partitions
     * APIs for fetching pending message count
     """
+
     def __init__(self, client, group, topic, partitions=None):
 
         self.client = client
@@ -97,6 +99,7 @@ class Consumer(object):
 
 
 class SimpleConsumer(Consumer):
+
     """
      consumer implementation that consumes all/specified partitions
     for a topic
@@ -106,6 +109,7 @@ class SimpleConsumer(Consumer):
     topic: the topic to consume
     partitions: An optional list of partitions to consume the data from
     """
+
     def __init__(self, client, group, topic, partitions=None,
                  fetch_max_wait_time=FETCH_MAX_WAIT_TIME,
                  fetch_size_bytes=FETCH_MIN_BYTES):
@@ -248,11 +252,11 @@ class SimpleConsumer(Consumer):
                     if message.offset is None:
                         break
                     offset = message.offset + 1
-            except ConsumerFetchSizeTooSmall, e:
+            except ConsumerFetchSizeTooSmall as e:
                 self.current_buffer_size *= 2
                 log.warn(
                     "Fetch size too small, increasing to %d (2x) and retry",
                     self.current_buffer_size)
                 continue
-            except ConsumerNoMoreData, e:
+            except ConsumerNoMoreData as e:
                 log.debug("Iteration was ended by %r", e)
