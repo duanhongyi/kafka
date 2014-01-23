@@ -241,7 +241,7 @@ class KafkaClient(object):
         for resp in resps:
             # Check for errors
             if fail_on_error is True and resp.error != 0:
-                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                exception_cls = KafkaProtocol.ERROR_CODE_MAPPING.get(
                     resp.error, UnknownException
                 )
                 raise exception_cls(
@@ -260,11 +260,10 @@ class KafkaClient(object):
         Payloads are grouped by topic and partition so they can be pipelined
         to the same brokers.
         """
-
+        print("max_wait:%s, min_bytes:%s" % (max_wait_time, min_bytes))
         encoder = partial(KafkaProtocol.encode_fetch_request,
                           max_wait_time=max_wait_time,
                           min_bytes=min_bytes)
-
         resps = self._send_broker_aware_request(
             payloads, encoder,
             KafkaProtocol.decode_fetch_response)
@@ -273,7 +272,7 @@ class KafkaClient(object):
         for resp in resps:
             # Check for errors
             if fail_on_error is True and resp.error != 0:
-                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                exception_cls = KafkaProtocol.ERROR_CODE_MAPPING.get(
                     resp.error, UnknownException
                 )
                 raise exception_cls(
@@ -293,7 +292,7 @@ class KafkaClient(object):
         out = []
         for resp in resps:
             if fail_on_error is True and resp.error != 0:
-                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                exception_cls = KafkaProtocol.ERROR_CODE_MAPPING.get(
                     resp.error, UnknownException
                 )
                 raise exception_cls("OffsetRequest failed with errorcode=%s",
@@ -311,7 +310,7 @@ class KafkaClient(object):
         out = []
         for resp in resps:
             if fail_on_error is True and resp.error != 0:
-                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                exception_cls = KafkaProtocol.ERROR_CODE_MAPPING.get(
                     resp.error, UnknownException
                 )
                 raise exception_cls("OffsetCommitRequest failed with "
@@ -330,7 +329,7 @@ class KafkaClient(object):
         out = []
         for resp in resps:
             if fail_on_error is True and resp.error != 0:
-                exception_cls = self.protocol.ERROR_CODE_MAPPING.get(
+                exception_cls = KafkaProtocol.ERROR_CODE_MAPPING.get(
                     resp.error, UnknownException
                 )
                 raise exception_cls(

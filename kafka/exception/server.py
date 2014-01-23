@@ -2,49 +2,49 @@ class UnknownException(Exception):
     pass
 
 
-class OffsetOutOfRangeException(Exception):
+class OffsetOutOfRange(Exception):
     pass
 
 
-class InvalidMessageException(Exception):
+class InvalidMessage(Exception):
     pass
 
 
-class UnknownTopicOrPartitionException(Exception):
+class UnknownTopicOrPartition(Exception):
     pass
 
 
-class InvalidMessageSizeException(Exception):
+class InvalidMessageSize(Exception):
     pass
 
 
-class LeaderNotAvailableException(Exception):
+class LeaderNotAvailable(Exception):
     pass
 
 
-class NotLeaderForPartitionException(Exception):
+class NotLeaderForPartition(Exception):
     pass
 
 
-class RequestTimedOutException(Exception):
+class RequestTimedOut(Exception):
     pass
 
 
-class BrokerNotAvailableException(Exception):
+class BrokerNotAvailable(Exception):
     pass
 
 
-class ReplicaNotAvailableException(Exception):
+class ReplicaNotAvailable(Exception):
     pass
 
 
-class MessageSizeTooLargeException(Exception):
+class MessageSizeTooLarge(Exception):
     pass
 
 
-class StaleControllerEpochCodeException(Exception):
+class StaleControllerEpochCode(Exception):
     pass
 
 
-class OffsetMetadataTooLargeCodeException(Exception):
+class OffsetMetadataTooLargeCode(Exception):
     pass

@@ -1,12 +1,11 @@
-from itertools import izip_longest, repeat
 import logging
 
 from kafka.common import (
     FetchRequest,
     OffsetRequest, OffsetCommitRequest,
-    ConsumerFetchSizeTooSmall, ConsumerNoMoreData,
     OffsetFetchRequest
 )
+from kafka.exception import ConsumerFetchSizeTooSmall, ConsumerNoMoreData
 
 
 log = logging.getLogger("kafka")
@@ -114,64 +113,12 @@ class SimpleConsumer(Consumer):
                  fetch_max_wait_time=FETCH_MAX_WAIT_TIME,
                  fetch_size_bytes=FETCH_MIN_BYTES):
 
-        self.partition_info = False     # Do not return partition info in msgs
         self.fetch_max_wait_time = fetch_max_wait_time
         self.fetch_min_bytes = fetch_size_bytes
 
         super(SimpleConsumer, self).__init__(
             client, group, topic,
             partitions=partitions)
-
-    def provide_partition_info(self):
-        """
-        Indicates that partition info must be returned by the consumer
-        """
-        self.partition_info = True
-
-    def seek(self, offset, whence):
-        """
-        Alter the current offset in the consumer, similar to fseek
-
-        offset: how much to modify the offset
-        whence: where to modify it from
-                0 is relative to the earliest available offset (head)
-                1 is relative to the current offset
-                2 is relative to the latest known offset (tail)
-        """
-
-        if whence == 1:  # relative to current position
-            for partition, _offset in self.offsets.items():
-                self.offsets[partition] = _offset + offset
-        elif whence in (0, 2):  # relative to beginning or end
-            # divide the request offset by number of partitions,
-            # distribute the remained evenly
-            (delta, rem) = divmod(offset, len(self.offsets))
-            deltas = {}
-            for partition, r in izip_longest(self.offsets.keys(),
-                                             repeat(1, rem), fillvalue=0):
-                deltas[partition] = delta + r
-
-            reqs = []
-            for partition in self.offsets.keys():
-                if whence == 0:
-                    reqs.append(OffsetRequest(self.topic, partition, -2, 1))
-                elif whence == 2:
-                    reqs.append(OffsetRequest(self.topic, partition, -1, 1))
-
-                    # The API returns back the next available offset
-                    # For eg: if the current offset is 18, the API will return
-                    # back 19. So, if we have to seek 5 points before, we will
-                    # end up going back to 14, instead of 13. Adjust this
-                    deltas[partition] -= 1
-                else:
-                    pass
-
-            resps = self.client.send_offset_request(reqs)
-            for resp in resps:
-                self.offsets[resp.partition] = \
-                    resp.offsets[0] + deltas[resp.partition]
-        else:
-            raise ValueError("Unexpected value for `whence`, %d" % whence)
 
     def get_messages(self, count=1):
         """
@@ -207,13 +154,9 @@ class SimpleConsumer(Consumer):
         while True:
             if len(iters) == 0:
                 break
-
             for partition, it in iters.items():
                 try:
-                    if self.partition_info:
-                        yield (partition, it.next())
-                    else:
-                        yield it.next()
+                    yield (partition, it.next())
                 except StopIteration:
                     log.debug("Done iterating over partition %s" % partition)
                     del iters[partition]
@@ -235,28 +178,26 @@ class SimpleConsumer(Consumer):
         # consumed.
         offset = offset + 1
         fetch_size = self.fetch_min_bytes
-        while True:
-            req = FetchRequest(
-                self.topic, partition, offset, self.current_buffer_size)
-            (resp,) = self.client.send_fetch_request(
-                [req],
-                max_wait_time=self.fetch_max_wait_time,
-                min_bytes=fetch_size)
-            assert resp.topic == self.topic
-            assert resp.partition == partition
-            try:
-                for message in resp.messages:
-                    self.current_buffer_size = self.client.buffer_size
-                    self.offsets[partition] = message.offset
-                    yield message
-                    if message.offset is None:
-                        break
-                    offset = message.offset + 1
-            except ConsumerFetchSizeTooSmall as e:
-                self.current_buffer_size *= 2
-                log.warn(
-                    "Fetch size too small, increasing to %d (2x) and retry",
-                    self.current_buffer_size)
-                continue
-            except ConsumerNoMoreData as e:
-                log.debug("Iteration was ended by %r", e)
+        req = FetchRequest(
+            self.topic, partition, offset, self.current_buffer_size)
+        (resp,) = self.client.send_fetch_request(
+            [req],
+            max_wait_time=self.fetch_max_wait_time,
+            min_bytes=fetch_size)
+        assert resp.topic == self.topic
+        assert resp.partition == partition
+        try:
+            for message in resp.messages:
+                self.current_buffer_size = self.client.buffer_size
+                self.offsets[partition] = message.offset
+                yield message
+                if message.offset is None:
+                    break
+                offset = message.offset + 1
+        except ConsumerFetchSizeTooSmall as e:
+            self.current_buffer_size *= 2
+            log.warn(
+                "Fetch size too small, increasing to %d (2x) and retry",
+                self.current_buffer_size)
+        except ConsumerNoMoreData as e:
+            log.debug("Iteration was ended by %r", e)
