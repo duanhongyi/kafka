@@ -260,7 +260,6 @@ class KafkaClient(object):
         Payloads are grouped by topic and partition so they can be pipelined
         to the same brokers.
         """
-        print("max_wait:%s, min_bytes:%s" % (max_wait_time, min_bytes))
         encoder = partial(KafkaProtocol.encode_fetch_request,
                           max_wait_time=max_wait_time,
                           min_bytes=min_bytes)
