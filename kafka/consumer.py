@@ -178,26 +178,29 @@ class SimpleConsumer(Consumer):
         # consumed.
         offset = offset + 1
         fetch_size = self.fetch_min_bytes
-        req = FetchRequest(
-            self.topic, partition, offset, self.current_buffer_size)
-        (resp,) = self.client.send_fetch_request(
-            [req],
-            max_wait_time=self.fetch_max_wait_time,
-            min_bytes=fetch_size)
-        assert resp.topic == self.topic
-        assert resp.partition == partition
-        try:
-            for message in resp.messages:
-                self.current_buffer_size = self.client.buffer_size
-                self.offsets[partition] = message.offset
-                yield message
-                if message.offset is None:
-                    break
-                offset = message.offset + 1
-        except ConsumerFetchSizeTooSmall as e:
-            self.current_buffer_size *= 2
-            log.warn(
-                "Fetch size too small, increasing to %d (2x) and retry",
-                self.current_buffer_size)
-        except ConsumerNoMoreData as e:
-            log.debug("Iteration was ended by %r", e)
+        while True:
+            req = FetchRequest(
+                self.topic, partition, offset, self.current_buffer_size)
+            (resp,) = self.client.send_fetch_request(
+                [req],
+                max_wait_time=self.fetch_max_wait_time,
+                min_bytes=fetch_size)
+            assert resp.topic == self.topic
+            assert resp.partition == partition
+            try:
+                for message in resp.messages:
+                    self.current_buffer_size = self.client.buffer_size
+                    self.offsets[partition] = message.offset
+                    yield message
+                    if message.offset is None:
+                        break
+                    offset = message.offset + 1
+                if offset == resp.highwaterMark:
+                    raise StopIteration
+            except ConsumerFetchSizeTooSmall as e:
+                self.current_buffer_size *= 2
+                log.warn(
+                    "Fetch size too small, increasing to %d (2x) and retry",
+                    self.current_buffer_size)
+            except ConsumerNoMoreData as e:
+                log.debug("Iteration was ended by %r", e)
