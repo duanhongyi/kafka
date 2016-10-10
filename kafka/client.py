@@ -191,9 +191,9 @@ class KafkaClient(object):
                 failed_payloads += payloads
                 self.topics_to_brokers = {}  # reset metadata
                 continue
-
-            for response in decoder_fn(response):
-                acc[(response.topic, response.partition)] = response
+            if not decoder_fn is None:
+                for response in decoder_fn(response):
+                    acc[(response.topic, response.partition)] = response
 
         if failed_payloads:
             raise FailedPayloadsException(failed_payloads)
